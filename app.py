@@ -99,9 +99,9 @@ else:
     
     # Global Stealth Mode Toggle & CSS
     # Placed here to be available on all screens
-    col_global_1, col_global_2 = st.columns([8, 2])
+    col_global_1, col_global_2 = st.columns([9, 1])
     with col_global_2:
-        stealth_mode = st.checkbox("ステルスモード", value=False, key="global_stealth_mode")
+        stealth_mode = st.checkbox("ステルスモード", value=False, key="global_stealth_mode", label_visibility="collapsed")
 
     # CSS for Stealth Mode
     # color: transparent hides the text but keeps layout.
