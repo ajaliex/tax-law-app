@@ -97,6 +97,37 @@ if st.session_state.data is None:
 else:
     data = st.session_state.data
     
+    # Global Stealth Mode Toggle & CSS
+    # Placed here to be available on all screens
+    col_global_1, col_global_2 = st.columns([8, 2])
+    with col_global_2:
+        stealth_mode = st.checkbox("ステルスモード", value=False, key="global_stealth_mode")
+
+    # CSS for Stealth Mode
+    # color: transparent hides the text but keeps layout.
+    # :hover and ::selection make it visible.
+    st.markdown("""
+    <style>
+    .stealth-active {
+        color: transparent !important;
+        transition: color 0.3s ease;
+    }
+    .stealth-active:hover {
+        color: var(--text-color) !important; 
+    }
+    .stealth-active::selection {
+        color: var(--text-color) !important;
+        background: rgba(100, 149, 237, 0.3); /* Custom highlight color to ensure visibility */
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Helper to apply class
+    def stealth_class(text):
+        if stealth_mode:
+            return f'<span class="stealth-active">{text}</span>'
+        return text
+
     # --- Screen 1: Selection (Step 1 Entry) ---
     if st.session_state.step == 'selection':
         st.header("Step 1: テーマ選択")
@@ -131,17 +162,10 @@ else:
 
     # --- Screen 2: Step 1 Structure Recall ---
     elif st.session_state.step == 'step1_structure':
-        # Stealth Mode Toggle
-        col_st_1, col_st_2 = st.columns([9, 1])
-        with col_st_2:
-            stealth_mode = st.checkbox("隠す", label_visibility="collapsed", key="stealth_mode_s1")
-
         h1 = st.session_state.selected_h1
         
-        # Determine style based on stealth mode (Target: Theme Name)
-        # Using opacity: 0 to hide it completely but keep layout
-        title_style = "opacity: 0;" if stealth_mode else "opacity: 1;"
-        st.markdown(f"<h1 style='{title_style}'>テーマ: {h1}</h1>", unsafe_allow_html=True)
+        # Apply stealth to Theme
+        st.markdown(f"<h1>テーマ: {stealth_class(h1)}</h1>", unsafe_allow_html=True)
         st.markdown("### 構成想起")
         st.info("このテーマに含まれる構造を思い浮かべて記述してください。")
         
@@ -171,19 +195,11 @@ else:
 
     # --- Screen 3: Step 2 writing ---
     elif st.session_state.step == 'step2_writing':
-        # Stealth Mode Toggle
-        col_st_1, col_st_2 = st.columns([9, 1])
-        with col_st_2:
-            stealth_mode = st.checkbox("隠す", label_visibility="collapsed", key="stealth_mode_s2")
-
         h1 = st.session_state.selected_h1
         
-        # Determine style based on stealth mode
-        # Targets: "Step 2: 本文記述", "テーマ: {h1}"
-        style = "opacity: 0;" if stealth_mode else "opacity: 1;"
-        
-        st.markdown(f"<h1 style='{style}'>Step 2: 本文記述</h1>", unsafe_allow_html=True)
-        st.markdown(f"<h3 style='{style}'>テーマ: {h1}</h3>", unsafe_allow_html=True)
+        # Apply stealth to Titles
+        st.markdown(f"<h1>{stealth_class('Step 2: 本文記述')}</h1>", unsafe_allow_html=True)
+        st.markdown(f"<h3>テーマ: {stealth_class(h1)}</h3>", unsafe_allow_html=True)
         
         # Move Back to Selection to top
         if st.button("テーマ選択に戻る"):
@@ -218,10 +234,8 @@ else:
             
             # Display input boxes for each H3 item
             for i, item in enumerate(items):
-                # Target: "1. (全体)..."
-                # Using the same stealth mode variable from top of this screen
-                sub_style = "opacity: 0;" if stealth_mode else "opacity: 1;"
-                st.markdown(f"<h3 style='{sub_style}'>{i+1}. {item['title']}</h3>", unsafe_allow_html=True)
+                # Apply stealth to Question Title
+                st.markdown(f"<h3>{i+1}. {stealth_class(item['title'])}</h3>", unsafe_allow_html=True)
                 
                 # Unique keys for each item
                 input_key = f"input_{h1}_{selected_h2}_{i}"
