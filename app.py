@@ -169,9 +169,25 @@ else:
         today_sec, yest_sec = learning_manager.get_learning_time()
         col_t1, col_t2 = st.columns(2)
         with col_t1:
-            st.metric("今日の学習時間", learning_manager.format_time(today_sec))
+            # Using markdown to simulate metric, but with stealth_class applied
+            st.markdown(f"""
+            <div data-testid="stMetric">
+                <label style="font-size: 14px; color: rgba(49, 51, 63, 0.6);">今日の学習時間</label>
+                <div style="font-size: 32px; font-weight: 600;">
+                    {stealth_class(learning_manager.format_time(today_sec))}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
         with col_t2:
-            st.metric("昨日の学習時間", learning_manager.format_time(yest_sec))
+            st.markdown(f"""
+            <div data-testid="stMetric">
+                <label style="font-size: 14px; color: rgba(49, 51, 63, 0.6);">昨日の学習時間</label>
+                <div style="font-size: 32px; font-weight: 600;">
+                    {stealth_class(learning_manager.format_time(yest_sec))}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
         st.divider()
         
         h1_options = list(data.keys())
