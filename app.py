@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 from local_loader import LocalLoader
 import difflib
@@ -6,6 +7,8 @@ import Levenshtein
 import os
 import importlib
 import local_loader
+from learning_manager import LearningManager
+from datetime import datetime
 
 # Page Config
 st.set_page_config(page_title="法人税法理論 暗記アプリ", layout="wide")
@@ -21,6 +24,34 @@ if 'data' not in st.session_state:
     st.session_state.data = None
 if 'debug_info' not in st.session_state:
     st.session_state.debug_info = None
+if 'focus_target_idx' not in st.session_state:
+    st.session_state.focus_target_idx = None
+if 'last_action_time' not in st.session_state:
+    st.session_state.last_action_time = datetime.now()
+
+# Initialize Learning Manager
+learning_manager = LearningManager()
+
+# --- Learning Time Tracking Logic ---
+# Logic: Calculate time elapsed since last action. 
+# If page phase is "learning" (step1 or step2), add to log.
+# Threshold: Ignore if interval is too long (e.g. > 30 mins) to prevent idle counting.
+
+current_time = datetime.now()
+elapsed = (current_time - st.session_state.last_action_time).total_seconds()
+
+# Define learning steps
+is_learning_mode = st.session_state.step in ['step1_structure', 'step2_writing']
+
+if is_learning_mode:
+    # If elapsed time is reasonable (e.g., less than 30 minutes), add to log
+    # This accounts for the time spent "thinking" before clicking a button.
+    if 0 < elapsed < 1800:  
+        learning_manager.add_learning_time(elapsed)
+
+# Update last action time for the NEXT interval
+st.session_state.last_action_time = current_time
+
 
 # Sidebar: Configuration & Data Loading
 
@@ -34,7 +65,9 @@ def normalize_text(text):
     if not text:
         return ""
     # NFKC normalization converts full-width numbers/parens to half-width
-    return unicodedata.normalize('NFKC', text)
+    text = unicodedata.normalize('NFKC', text)
+    # Remove spaces (full-width and half-width) to ignore stylistic differences in spacing
+    return text.replace(" ", "").replace("　", "")
 
 def compute_similarity(text1, text2):
     if not text1 or not text2:
@@ -131,6 +164,15 @@ else:
     # --- Screen 1: Selection (Step 1 Entry) ---
     if st.session_state.step == 'selection':
         st.header("Step 1: テーマ選択")
+        
+        # Display Learning Time
+        today_sec, yest_sec = learning_manager.get_learning_time()
+        col_t1, col_t2 = st.columns(2)
+        with col_t1:
+            st.metric("今日の学習時間", learning_manager.format_time(today_sec))
+        with col_t2:
+            st.metric("昨日の学習時間", learning_manager.format_time(yest_sec))
+        st.divider()
         
         h1_options = list(data.keys())
         if not h1_options:
@@ -234,6 +276,9 @@ else:
             
             # Display input boxes for each H3 item
             for i, item in enumerate(items):
+                # Anchor for scrolling
+                st.markdown(f'<div id="quest_{i}"></div>', unsafe_allow_html=True)
+                
                 # Apply stealth to Question Title
                 st.markdown(f"<h3>{i+1}. {stealth_class(item['title'])}</h3>", unsafe_allow_html=True)
                 
@@ -252,6 +297,45 @@ else:
                     initial_val = st.session_state.get(stable_input_key, "")
                     user_text = st.text_area("解答入力:", key=input_key, value=initial_val, height=150)
                     
+                    # Auto-focus logic after reset
+                    if st.session_state.focus_target_idx == i:
+                        components.html(
+                            f"""
+                            <script>
+                                try {{
+                                    var element = window.parent.document.getElementById("quest_{i}");
+                                    if (element) {{
+                                        element.scrollIntoView({{behavior: "smooth", block: "center"}});
+                                        
+                                        // Navigate up to find the component wrapper so we can see siblings
+                                        var current = element;
+                                        while (current && !current.nextElementSibling) {{
+                                            current = current.parentElement;
+                                            if (!current || current.tagName === 'BODY') break;
+                                        }}
+                                        
+                                        // Now traverse siblings (downstream) to find the textarea
+                                        var sibling = current;
+                                        for(var k=0; k<20; k++){{
+                                            if (!sibling) break;
+                                            sibling = sibling.nextElementSibling;
+                                            if (sibling) {{
+                                                var ta = sibling.querySelector('textarea');
+                                                if (ta) {{
+                                                    ta.focus();
+                                                    break;
+                                                }}
+                                            }}
+                                        }}
+                                    }}
+                                }} catch(e) {{ console.log(e); }}
+                            </script>
+                            """,
+                            height=0,
+                            width=0
+                        )
+                        st.session_state.focus_target_idx = None
+
                     if st.button("判定", key=f"btn_{input_key}"):
                         st.session_state[stable_input_key] = user_text # Save to stable storage
                         st.session_state[judged_key] = True
@@ -303,6 +387,7 @@ else:
                             
                         if st.button("リセットして最初から", key=f"reset_{input_key}"):
                              reset_callback(stable_input_key, judged_key)
+                             st.session_state.focus_target_idx = i
                              st.rerun()
 
                 st.divider()
