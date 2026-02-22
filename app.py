@@ -289,27 +289,28 @@ else:
                 st.rerun()
         else:
             # H2 Selection
-            # Find current index for selectbox
+            # selectboxの値管理をSession Stateに一本化する。
+            # index引数とSession Stateを同時に指定すると警告が出るため、
+            # レンダリング前にh2_select_boxを初期化し、index引数は使わない。
             current_h2 = st.session_state.get("selected_h2")
-            try:
-                current_idx = h2_options.index(current_h2) if current_h2 in h2_options else 0
-            except:
-                current_idx = 0
-                
+            if "h2_select_box" not in st.session_state or st.session_state.h2_select_box not in h2_options:
+                st.session_state.h2_select_box = current_h2 if current_h2 in h2_options else h2_options[0]
+
             def on_h2_change():
                 st.session_state.selected_h2 = st.session_state.h2_select_box
                 st.query_params["h2"] = st.session_state.selected_h2
 
-            selected_h2 = st.selectbox(
-                "練習する項目を選んでください", 
-                h2_options, 
-                index=current_idx, 
-                key="h2_select_box", 
+            st.selectbox(
+                "練習する項目を選んでください",
+                h2_options,
+                key="h2_select_box",
                 on_change=on_h2_change
             )
-            # Update state if changed (though on_change handles it, keeping sync is good)
+            selected_h2 = st.session_state.h2_select_box
             st.session_state.selected_h2 = selected_h2
             st.query_params["h2"] = selected_h2
+            # current_idxをselectboxの実際の選択値から再計算
+            current_idx = h2_options.index(selected_h2)
             
             st.divider()
             
