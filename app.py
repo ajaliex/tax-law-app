@@ -423,8 +423,12 @@ else:
             # Next Category Button at bottom (keep outside forms)
             if current_idx < len(h2_options) - 1:
                 if st.button("次の大項目へ", type="primary"):
-                    st.session_state.selected_h2 = h2_options[current_idx + 1]
-                    st.query_params["h2"] = st.session_state.selected_h2
+                    next_h2 = h2_options[current_idx + 1]
+                    st.session_state.selected_h2 = next_h2
+                    # selectboxのウィジェットstateも合わせて更新しないと
+                    # rerun後に古い選択値が復元されてしまうため直接書き換える
+                    st.session_state.h2_select_box = next_h2
+                    st.query_params["h2"] = next_h2
                     st.rerun()
             else:
                  st.info("これが最後の項目です。")
