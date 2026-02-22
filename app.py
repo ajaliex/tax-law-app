@@ -421,14 +421,17 @@ else:
                 st.divider()
             
             # Next Category Button at bottom (keep outside forms)
+            # on_clickコールバックを使う理由:
+            # ボタン押下後のrerun開始時（ウィジェットレンダリング前）にコールバックが実行されるため、
+            # h2_select_box（selectboxのwidget key）を安全に書き換えられる。
+            # ウィジェットのレンダリング後に同じキーのsession_stateを変更するとStreamlitが例外を投げる。
             if current_idx < len(h2_options) - 1:
-                if st.button("次の大項目へ", type="primary"):
-                    next_h2 = h2_options[current_idx + 1]
+                def go_to_next_h2(idx=current_idx):
+                    next_h2 = h2_options[idx + 1]
                     st.session_state.selected_h2 = next_h2
-                    # selectboxのウィジェットstateも合わせて更新しないと
-                    # rerun後に古い選択値が復元されてしまうため直接書き換える
                     st.session_state.h2_select_box = next_h2
                     st.query_params["h2"] = next_h2
-                    st.rerun()
+
+                st.button("次の大項目へ", type="primary", on_click=go_to_next_h2)
             else:
-                 st.info("これが最後の項目です。")
+                st.info("これが最後の項目です。")
