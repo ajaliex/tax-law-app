@@ -8,6 +8,7 @@ import os
 import importlib
 import local_loader
 from learning_manager import LearningManager
+from memo_manager import MemoManager
 from datetime import datetime
 
 # Page Config
@@ -31,6 +32,7 @@ if 'last_action_time' not in st.session_state:
 
 # Initialize Learning Manager
 learning_manager = LearningManager()
+memo_manager = MemoManager()
 
 # --- Learning Time Tracking Logic ---
 # Logic: Calculate time elapsed since last action. 
@@ -321,8 +323,18 @@ else:
                 # Anchor for scrolling
                 st.markdown(f'<div id="quest_{i}"></div>', unsafe_allow_html=True)
                 
-                # Apply stealth to Question Title
-                st.markdown(f"<h3>{i+1}. {stealth_class(item['title'])}</h3>", unsafe_allow_html=True)
+                # Apply stealth to Question Title and add Memo button
+                col_q1, col_q2 = st.columns([8, 2])
+                with col_q1:
+                    st.markdown(f"<h3>{i+1}. {stealth_class(item['title'])}</h3>", unsafe_allow_html=True)
+                with col_q2:
+                    current_memo = memo_manager.get_memo(h1, selected_h2, item['title'])
+                    with st.popover("📝 メモ"):
+                        memo_key = f"memo_input_{h1}_{selected_h2}_{i}"
+                        new_memo = st.text_area("メモ内容", value=current_memo, key=memo_key, height=150, label_visibility="collapsed")
+                        if st.button("保存", key=f"memo_save_{i}"):
+                            memo_manager.save_memo(h1, selected_h2, item['title'], new_memo)
+                            st.success("保存しました。")
                 
                 # Unique keys for each item
                 input_key = f"input_{h1}_{selected_h2}_{i}"
